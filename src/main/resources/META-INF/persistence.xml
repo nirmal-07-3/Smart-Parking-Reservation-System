@@ -9,6 +9,8 @@
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
         <class>com.smartparking.entity.User</class>
+        <class>com.smartparking.entity.Reservation</class>
+        <class>com.smartparking.entity.Payment</class>
 
         <properties>
 
