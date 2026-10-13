@@ -319,7 +319,7 @@
                 at your parking locations.
             </p>
             <a class="action-link"
-               href="${pageContext.request.contextPath}/provider/slots">
+               href="${pageContext.request.contextPath}/provider/parkings">
                 Manage Slots
             </a>
         </article>
