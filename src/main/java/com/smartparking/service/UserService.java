@@ -140,6 +140,27 @@ public class UserService {
             return false;
         }
     }
+    public User updateProfile(Long userId, String name, String phone) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Invalid user account.");
+        }
+
+        if (name == null || name.isBlank() || name.trim().length() > 100) {
+            throw new IllegalArgumentException("Enter a valid name of at most 100 characters.");
+        }
+
+        if (phone == null || !phone.trim().matches("[0-9+() -]{7,15}")) {
+            throw new IllegalArgumentException("Enter a valid phone number.");
+        }
+
+        User user = userDAO.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User account was not found."));
+
+        user.setName(name.trim());
+        user.setPhone(phone.trim());
+
+        return userDAO.update(user);
+    }
 
     private byte[] deriveKey(char[] password, byte[] salt, int iterations) {
         PBEKeySpec spec = new PBEKeySpec(
