@@ -60,6 +60,6 @@ public class LoginController extends HttpServlet {
         session.setAttribute("userRole", user.getRole().name());
         session.setMaxInactiveInterval(30 * 60);
 
-        response.sendRedirect(request.getContextPath() + "/home");
+        response.sendRedirect(request.getContextPath() + "/dashboard");
     }
 }

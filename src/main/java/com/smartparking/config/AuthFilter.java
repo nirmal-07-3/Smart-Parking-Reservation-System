@@ -25,6 +25,13 @@ public class AuthFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+        httpResponse.setHeader(
+                "Cache-Control",
+                "no-cache, no-store, must-revalidate"
+        );
+        httpResponse.setHeader("Pragma", "no-cache");
+        httpResponse.setDateHeader("Expires", 0);
+
         String contextPath = httpRequest.getContextPath();
         String path = httpRequest.getRequestURI()
                 .substring(contextPath.length());
@@ -33,12 +40,14 @@ public class AuthFilter implements Filter {
                 || path.equals("/register")
                 || path.equals("/home")
                 || path.equals("/logout")
+                || path.equals("/dashboard")
                 || path.equals("/")
                 || path.startsWith("/assets/")
                 || path.startsWith("/css/")
                 || path.startsWith("/js/")
                 || path.startsWith("/images/")
                 || path.equals("/favicon.ico")) {
+
             chain.doFilter(request, response);
             return;
         }
@@ -63,9 +72,11 @@ public class AuthFilter implements Filter {
         if (path.startsWith("/admin/")) {
             allowed = "ADMIN".equals(role);
         } else if (path.startsWith("/provider/")) {
-            allowed = "PROVIDER".equals(role) || "ADMIN".equals(role);
-        } else if (path.startsWith("/customer/")
+            allowed = "PROVIDER".equals(role)
+                    || "ADMIN".equals(role);
+        } else if (path.equals("/vehicles")
                 || path.startsWith("/vehicles/")
+                || path.startsWith("/customer/")
                 || path.startsWith("/reservation/")) {
             allowed = "CUSTOMER".equals(role);
         }

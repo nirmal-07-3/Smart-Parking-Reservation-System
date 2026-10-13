@@ -23,15 +23,39 @@ public class VehicleController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
 
-        if (session == null || session.getAttribute("userId") == null
-                || !"CUSTOMER".equals(session.getAttribute("userRole"))) {
+        if (!isCustomer(session)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
         Long userId = (Long) session.getAttribute("userId");
-        List<Vehicle> vehicles = vehicleService.getVehicles(userId);
+        String action = request.getParameter("action");
 
+        if ("edit".equals(action)) {
+            try {
+                Long vehicleId = Long.valueOf(request.getParameter("vehicleId"));
+
+                Vehicle vehicle = vehicleService.getVehicles(userId).stream()
+                        .filter(v -> v.getId().equals(vehicleId))
+                        .findFirst()
+                        .orElse(null);
+
+                if (vehicle == null) {
+                    session.setAttribute("vehicleMessage",
+                            "Vehicle was not found.");
+                    response.sendRedirect(request.getContextPath() + "/vehicles");
+                    return;
+                }
+
+                request.setAttribute("editVehicle", vehicle);
+            } catch (NumberFormatException e) {
+                session.setAttribute("vehicleMessage", "Invalid vehicle.");
+                response.sendRedirect(request.getContextPath() + "/vehicles");
+                return;
+            }
+        }
+
+        List<Vehicle> vehicles = vehicleService.getVehicles(userId);
         request.setAttribute("vehicles", vehicles);
         request.getRequestDispatcher("/WEB-INF/views/vehicles.jsp")
                 .forward(request, response);
@@ -41,10 +65,11 @@ public class VehicleController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
+        request.setCharacterEncoding("UTF-8");
+
         HttpSession session = request.getSession(false);
 
-        if (session == null || session.getAttribute("userId") == null
-                || !"CUSTOMER".equals(session.getAttribute("userRole"))) {
+        if (!isCustomer(session)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
@@ -57,12 +82,28 @@ public class VehicleController extends HttpServlet {
                 Long vehicleId = Long.valueOf(request.getParameter("vehicleId"));
                 boolean deleted = vehicleService.deleteVehicle(vehicleId, userId);
 
-                if (!deleted) {
-                    session.setAttribute("vehicleMessage", "Vehicle was not found.");
-                } else {
-                    session.setAttribute("vehicleMessage", "Vehicle deleted successfully.");
-                }
-            } else {
+                session.setAttribute("vehicleMessage",
+                        deleted ? "Vehicle deleted successfully."
+                                : "Vehicle was not found.");
+
+            } else if ("update".equals(action)) {
+                Long vehicleId = Long.valueOf(request.getParameter("vehicleId"));
+
+                boolean updated = vehicleService.updateVehicle(
+                        vehicleId,
+                        userId,
+                        request.getParameter("vehicleNumber"),
+                        request.getParameter("vehicleType"),
+                        request.getParameter("brand"),
+                        request.getParameter("model"),
+                        request.getParameter("color")
+                );
+
+                session.setAttribute("vehicleMessage",
+                        updated ? "Vehicle updated successfully."
+                                : "Vehicle was not found.");
+
+            } else if (action == null || action.isBlank() || "add".equals(action)) {
                 vehicleService.addVehicle(
                         userId,
                         request.getParameter("vehicleNumber"),
@@ -72,15 +113,28 @@ public class VehicleController extends HttpServlet {
                         request.getParameter("color")
                 );
 
-                session.setAttribute("vehicleMessage", "Vehicle added successfully.");
+                session.setAttribute("vehicleMessage",
+                        "Vehicle added successfully.");
+            } else {
+                session.setAttribute("vehicleMessage",
+                        "Invalid vehicle action.");
             }
+
+        } catch (NumberFormatException e) {
+            session.setAttribute("vehicleMessage", "Invalid vehicle.");
         } catch (IllegalArgumentException e) {
             session.setAttribute("vehicleMessage", e.getMessage());
         } catch (RuntimeException e) {
             session.setAttribute("vehicleMessage",
-                    "Unable to process the vehicle request. Check the details and try again.");
+                    "Unable to process the vehicle request. Please try again.");
         }
 
         response.sendRedirect(request.getContextPath() + "/vehicles");
+    }
+
+    private boolean isCustomer(HttpSession session) {
+        return session != null
+                && session.getAttribute("userId") instanceof Long
+                && "CUSTOMER".equals(session.getAttribute("userRole"));
     }
 }
