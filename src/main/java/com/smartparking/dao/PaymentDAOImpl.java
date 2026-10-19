@@ -1,4 +1,3 @@
-
 package com.smartparking.dao;
 
 import com.smartparking.config.JPAUtil;
@@ -36,14 +35,15 @@ public class PaymentDAOImpl implements PaymentDAO {
         EntityManager em = JPAUtil.getEntityManager();
 
         try {
-            List<Payment> results = em.createQuery(
-                            "SELECT p FROM Payment p WHERE p.reservationId = :reservationId",
-                            Payment.class
-                    ).setParameter("reservationId", reservationId)
+            return em.createQuery(
+                            "SELECT p FROM Payment p " +
+                                    "WHERE p.reservationId = :reservationId",
+                            Payment.class)
+                    .setParameter("reservationId", reservationId)
                     .setMaxResults(1)
-                    .getResultList();
-
-            return results.stream().findFirst();
+                    .getResultList()
+                    .stream()
+                    .findFirst();
         } finally {
             em.close();
         }
@@ -71,7 +71,8 @@ public class PaymentDAOImpl implements PaymentDAO {
 
     @Override
     public Payment saveOrUpdateWithReservation(
-            Payment payment, Reservation reservation) {
+            Payment payment,
+            Reservation reservation) {
 
         EntityManager em = JPAUtil.getEntityManager();
         EntityTransaction tx = em.getTransaction();
@@ -79,14 +80,9 @@ public class PaymentDAOImpl implements PaymentDAO {
         try {
             tx.begin();
 
-            Payment managedPayment;
-
-            if (payment.getId() == null) {
-                em.persist(payment);
-                managedPayment = payment;
-            } else {
-                managedPayment = em.merge(payment);
-            }
+            Payment managedPayment = payment.getId() == null
+                    ? persistPayment(em, payment)
+                    : em.merge(payment);
 
             if (reservation != null) {
                 em.merge(reservation);
@@ -94,11 +90,33 @@ public class PaymentDAOImpl implements PaymentDAO {
 
             tx.commit();
             return managedPayment;
+
         } catch (RuntimeException e) {
             if (tx.isActive()) {
                 tx.rollback();
             }
             throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+    private Payment persistPayment(
+            EntityManager em,
+            Payment payment) {
+        em.persist(payment);
+        return payment;
+    }
+
+    @Override
+    public List<Payment> findAll() {
+        EntityManager em = JPAUtil.getEntityManager();
+
+        try {
+            return em.createQuery(
+                            "SELECT p FROM Payment p ORDER BY p.createdAt DESC",
+                            Payment.class)
+                    .getResultList();
         } finally {
             em.close();
         }

@@ -112,10 +112,18 @@
             <a href="${pageContext.request.contextPath}/reservation/history">View History</a>
         </article>
 
+
         <article class="card">
             <h3>Find Parking</h3>
-            <p>Parking search will be available when the search workflow is integrated.</p>
+            <p>
+                Search active parking locations, view available slots,
+                choose your registered vehicle, and create a reservation.
+            </p>
+            <a href="${pageContext.request.contextPath}/reservation/search">
+                Search Parking
+            </a>
         </article>
+
     </section>
 </main>
 </body>

@@ -1,3 +1,4 @@
+
 package com.smartparking.dao;
 
 import com.smartparking.config.JPAUtil;
@@ -33,7 +34,9 @@ public class ParkingLocationDAOImpl implements ParkingLocationDAO {
     public Optional<ParkingLocation> findById(Long id) {
         EntityManager em = JPAUtil.getEntityManager();
         try {
-            return Optional.ofNullable(em.find(ParkingLocation.class, id));
+            return Optional.ofNullable(
+                    em.find(ParkingLocation.class, id)
+            );
         } finally {
             em.close();
         }
@@ -44,7 +47,8 @@ public class ParkingLocationDAOImpl implements ParkingLocationDAO {
         EntityManager em = JPAUtil.getEntityManager();
         try {
             return em.createQuery(
-                    "SELECT p FROM ParkingLocation p WHERE p.providerId = :providerId ORDER BY p.id DESC",
+                    "SELECT p FROM ParkingLocation p " +
+                            "WHERE p.providerId = :providerId ORDER BY p.id DESC",
                     ParkingLocation.class
             ).setParameter("providerId", providerId).getResultList();
         } finally {
@@ -54,12 +58,20 @@ public class ParkingLocationDAOImpl implements ParkingLocationDAO {
 
     @Override
     public List<ParkingLocation> findActiveLocations() {
+        return findByStatus(ParkingLocation.Status.ACTIVE);
+    }
+
+    @Override
+    public List<ParkingLocation> findByStatus(
+            ParkingLocation.Status status) {
+
         EntityManager em = JPAUtil.getEntityManager();
         try {
             return em.createQuery(
-                    "SELECT p FROM ParkingLocation p WHERE p.status = :status ORDER BY p.name",
+                    "SELECT p FROM ParkingLocation p " +
+                            "WHERE p.status = :status ORDER BY p.createdAt DESC",
                     ParkingLocation.class
-            ).setParameter("status", ParkingLocation.Status.ACTIVE).getResultList();
+            ).setParameter("status", status).getResultList();
         } finally {
             em.close();
         }

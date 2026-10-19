@@ -1,4 +1,3 @@
-
 package com.smartparking.service;
 
 import com.smartparking.config.JPAUtil;
@@ -59,7 +58,8 @@ public class PaymentService {
             }
 
             Payment payment = em.createQuery(
-                            "SELECT p FROM Payment p WHERE p.reservationId = :reservationId",
+                            "SELECT p FROM Payment p " +
+                                    "WHERE p.reservationId = :reservationId",
                             Payment.class)
                     .setParameter("reservationId", reservationId)
                     .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -68,15 +68,10 @@ public class PaymentService {
                     .orElse(null);
 
             if (payment != null
-                    && payment.getStatus() == Payment.Status.SUCCESS) {
+                    && (payment.getStatus() == Payment.Status.SUCCESS
+                    || payment.getStatus() == Payment.Status.REFUNDED)) {
                 throw new IllegalArgumentException(
-                        "Payment has already succeeded for this reservation.");
-            }
-
-            if (payment != null
-                    && payment.getStatus() == Payment.Status.REFUNDED) {
-                throw new IllegalArgumentException(
-                        "A refunded payment cannot be reused.");
+                        "This payment cannot be processed again.");
             }
 
             if (payment == null) {
@@ -95,7 +90,6 @@ public class PaymentService {
                 payment.setStatus(Payment.Status.SUCCESS);
                 payment.setTransactionReference(
                         "SIM-" + UUID.randomUUID());
-
                 reservation.setStatus(Reservation.Status.CONFIRMED);
             } else {
                 payment.setStatus(Payment.Status.FAILED);
@@ -125,7 +119,8 @@ public class PaymentService {
         }
 
         return paymentDAO.findByReservationId(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Payment record not found."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Payment record not found."));
     }
 }

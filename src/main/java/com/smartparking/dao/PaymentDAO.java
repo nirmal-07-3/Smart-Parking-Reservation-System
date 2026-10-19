@@ -1,8 +1,8 @@
-
 package com.smartparking.dao;
 
 import com.smartparking.entity.Payment;
 import com.smartparking.entity.Reservation;
+import java.util.List;
 import java.util.Optional;
 
 public interface PaymentDAO {
@@ -14,5 +14,8 @@ public interface PaymentDAO {
     Payment update(Payment payment);
 
     Payment saveOrUpdateWithReservation(
-            Payment payment, Reservation reservation);
+            Payment payment,
+            Reservation reservation);
+
+    List<Payment> findAll();
 }

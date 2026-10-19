@@ -1,8 +1,10 @@
+
 package com.smartparking.service;
 
 import com.smartparking.dao.ParkingLocationDAO;
 import com.smartparking.dao.ParkingLocationDAOImpl;
 import com.smartparking.entity.ParkingLocation;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -15,8 +17,11 @@ public class ParkingLocationService {
     }
 
     public ParkingLocation createParking(
-            Long providerId, String name, String address,
-            String description, BigDecimal hourlyRate) {
+            Long providerId,
+            String name,
+            String address,
+            String description,
+            BigDecimal hourlyRate) {
 
         if (providerId == null || providerId <= 0
                 || name == null || name.isBlank()
@@ -42,8 +47,8 @@ public class ParkingLocationService {
     }
 
     public List<ParkingLocation> getProviderParkings(Long providerId) {
-        if (providerId == null) {
-            throw new IllegalArgumentException("Provider is required.");
+        if (providerId == null || providerId <= 0) {
+            throw new IllegalArgumentException("A valid provider is required.");
         }
 
         return parkingDAO.findByProviderId(providerId);
@@ -53,14 +58,61 @@ public class ParkingLocationService {
         return parkingDAO.findActiveLocations();
     }
 
-    public ParkingLocation updateParking(
-            Long providerId, Long parkingId, String name,
-            String address, String description, BigDecimal hourlyRate) {
+    public List<ParkingLocation> getPendingParkings() {
+        return parkingDAO.findByStatus(ParkingLocation.Status.PENDING);
+    }
+
+    public ParkingLocation reviewParkingLocation(
+            Long parkingId,
+            ParkingLocation.Status decision) {
+
+        if (parkingId == null || parkingId <= 0) {
+            throw new IllegalArgumentException(
+                    "A valid parking location is required."
+            );
+        }
+
+        if (decision != ParkingLocation.Status.ACTIVE
+                && decision != ParkingLocation.Status.REJECTED) {
+            throw new IllegalArgumentException(
+                    "The review decision must be ACTIVE or REJECTED."
+            );
+        }
 
         ParkingLocation parking = parkingDAO.findById(parkingId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Parking location not found.")
-                );
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Parking location not found."
+                ));
+
+        if (parking.getStatus() != ParkingLocation.Status.PENDING) {
+            throw new IllegalArgumentException(
+                    "Only pending parking locations can be reviewed."
+            );
+        }
+
+        parking.setStatus(decision);
+        return parkingDAO.update(parking);
+    }
+
+    public ParkingLocation updateParking(
+            Long providerId,
+            Long parkingId,
+            String name,
+            String address,
+            String description,
+            BigDecimal hourlyRate) {
+
+        if (providerId == null || providerId <= 0
+                || parkingId == null || parkingId <= 0) {
+            throw new IllegalArgumentException(
+                    "Valid provider and parking location are required."
+            );
+        }
+
+        ParkingLocation parking = parkingDAO.findById(parkingId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Parking location not found."
+                ));
 
         if (!parking.getProviderId().equals(providerId)) {
             throw new IllegalArgumentException(
