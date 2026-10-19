@@ -161,6 +161,52 @@ public class UserService {
 
         return userDAO.update(user);
     }
+    public boolean changePassword(
+            Long userId,
+            String currentPassword,
+            String newPassword,
+            String confirmPassword) {
+
+        if (userId == null || userId <= 0
+                || currentPassword == null
+                || newPassword == null
+                || confirmPassword == null
+                || currentPassword.isBlank()
+                || newPassword.isBlank()
+                || confirmPassword.isBlank()) {
+            throw new IllegalArgumentException(
+                    "All password fields are required.");
+        }
+
+        if (!newPassword.equals(confirmPassword)) {
+            throw new IllegalArgumentException(
+                    "New password and confirmation do not match.");
+        }
+
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException(
+                    "Password must contain at least 8 characters.");
+        }
+
+        if (currentPassword.equals(newPassword)) {
+            throw new IllegalArgumentException(
+                    "New password must differ from the current password.");
+        }
+
+        User user = userDAO.findById(userId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found."));
+
+        if (!verifyPassword(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException(
+                    "Current password is incorrect.");
+        }
+
+        user.setPassword(hashPassword(newPassword));
+        userDAO.update(user);
+
+        return true;
+    }
 
     private byte[] deriveKey(char[] password, byte[] salt, int iterations) {
         PBEKeySpec spec = new PBEKeySpec(
