@@ -10,13 +10,17 @@
 
 
         <class>com.smartparking.entity.User</class>
+
         <class>com.smartparking.entity.Vehicle</class>
         <class>com.smartparking.entity.Reservation</class>
         <class>com.smartparking.entity.Payment</class>
+
+
         <class>com.smartparking.entity.ProviderApplication</class>
         <class>com.smartparking.entity.ParkingDocument</class>
         <class>com.smartparking.entity.ParkingLocation</class>
         <class>com.smartparking.entity.ParkingSlot</class>
+
 
 
         <properties>
