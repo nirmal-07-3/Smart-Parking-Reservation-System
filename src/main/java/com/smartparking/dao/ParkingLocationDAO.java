@@ -1,4 +1,5 @@
-package com.smartparking.dao;
+
+        package com.smartparking.dao;
 
 import com.smartparking.entity.ParkingLocation;
 import java.util.List;
@@ -13,6 +14,8 @@ public interface ParkingLocationDAO {
     List<ParkingLocation> findByProviderId(Long providerId);
 
     List<ParkingLocation> findActiveLocations();
+
+    List<ParkingLocation> findByStatus(ParkingLocation.Status status);
 
     ParkingLocation update(ParkingLocation parkingLocation);
 }
