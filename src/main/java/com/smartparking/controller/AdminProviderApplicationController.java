@@ -20,7 +20,6 @@ public class AdminProviderApplicationController extends HttpServlet {
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response)
             throws ServletException, IOException {
-
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
@@ -38,15 +37,16 @@ public class AdminProviderApplicationController extends HttpServlet {
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response)
             throws ServletException, IOException {
-
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
+        HttpSession session = request.getSession(false);
+
         try {
-            Long applicationId = Long.valueOf(
-                    request.getParameter("applicationId"));
+            Long applicationId =
+                    Long.valueOf(request.getParameter("applicationId"));
 
             ProviderApplication.Status status =
                     ProviderApplication.Status.valueOf(
@@ -59,17 +59,21 @@ public class AdminProviderApplicationController extends HttpServlet {
             }
 
             applicationService.reviewApplication(
-                    applicationId, status, request.getParameter("reviewNote"));
+                    applicationId,
+                    status,
+                    request.getParameter("reviewNote"));
 
-            setMessage(request.getSession(),
+            session.setAttribute(
+                    "adminMessage",
                     "Provider application review saved successfully.");
         } catch (IllegalArgumentException | NullPointerException e) {
-            setMessage(request.getSession(),
+            session.setAttribute("adminMessage",
                     e.getMessage() == null
                             ? "Invalid application review request."
                             : e.getMessage());
         } catch (RuntimeException e) {
-            setMessage(request.getSession(),
+            session.setAttribute(
+                    "adminMessage",
                     "Unable to save the application review.");
         }
 
@@ -81,9 +85,5 @@ public class AdminProviderApplicationController extends HttpServlet {
         HttpSession session = request.getSession(false);
         return session != null
                 && "ADMIN".equals(session.getAttribute("userRole"));
-    }
-
-    private void setMessage(HttpSession session, String message) {
-        session.setAttribute("adminMessage", message);
     }
 }

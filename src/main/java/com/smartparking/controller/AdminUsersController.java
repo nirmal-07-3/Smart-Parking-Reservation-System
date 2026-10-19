@@ -17,8 +17,9 @@ public class AdminUsersController extends HttpServlet {
     private final UserDAO userDAO = new UserDAOImpl();
 
     @Override
-    protected void doGet(HttpServletRequest request,
-                         HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         if (!isAdmin(request)) {
@@ -27,61 +28,91 @@ public class AdminUsersController extends HttpServlet {
         }
 
         request.setAttribute("users", userDAO.findAll());
+
         request.getRequestDispatcher(
                         "/WEB-INF/views/admin-users.jsp")
                 .forward(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request,
-                          HttpServletResponse response)
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
-
-        HttpSession session = request.getSession(false);
 
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
+        HttpSession session = request.getSession(false);
+
         try {
-            Long userId = Long.valueOf(request.getParameter("userId"));
-            User.Status status = User.Status.valueOf(
-                    request.getParameter("status"));
+            String userIdValue = request.getParameter("userId");
+            String statusValue = request.getParameter("status");
+
+            if (userIdValue == null || statusValue == null) {
+                throw new IllegalArgumentException(
+                        "User ID and status are required.");
+            }
+
+            Long userId = Long.valueOf(userIdValue);
+
+            if (userId <= 0) {
+                throw new IllegalArgumentException(
+                        "Invalid user ID.");
+            }
+
+            User.Status status = User.Status.valueOf(statusValue);
+
+            if (status != User.Status.ACTIVE
+                    && status != User.Status.BLOCKED) {
+                throw new IllegalArgumentException(
+                        "Invalid account status.");
+            }
 
             User user = userDAO.findById(userId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException("User not found."));
+                            new IllegalArgumentException(
+                                    "User not found."));
 
             Long adminId = (Long) session.getAttribute("userId");
 
             if (user.getRole() == User.Role.ADMIN
                     || user.getId().equals(adminId)) {
                 throw new IllegalArgumentException(
-                        "Admin accounts cannot be blocked or changed here.");
+                        "Admin accounts cannot be modified here.");
             }
 
             user.setStatus(status);
             userDAO.update(user);
 
             session.setAttribute(
-                    "adminMessage", "User status updated successfully.");
-        } catch (IllegalArgumentException | NullPointerException e) {
-            session.setAttribute("adminMessage",
+                    "adminMessage",
+                    "User status updated successfully.");
+
+        } catch (IllegalArgumentException e) {
+            session.setAttribute(
+                    "adminMessage",
                     e.getMessage() == null
                             ? "Invalid user update request."
                             : e.getMessage());
+
         } catch (RuntimeException e) {
             session.setAttribute(
-                    "adminMessage", "Unable to update the user.");
+                    "adminMessage",
+                    "Unable to update the user.");
         }
 
-        response.sendRedirect(request.getContextPath() + "/admin/users");
+        response.sendRedirect(
+                request.getContextPath() + "/admin/users");
     }
 
     private boolean isAdmin(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
+
         return session != null
-                && "ADMIN".equals(session.getAttribute("userRole"));
+                && "ADMIN".equals(
+                session.getAttribute("userRole"));
     }
 }

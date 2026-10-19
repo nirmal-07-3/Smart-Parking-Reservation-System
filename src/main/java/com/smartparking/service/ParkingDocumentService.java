@@ -18,11 +18,14 @@ public class ParkingDocumentService {
     }
 
     public ParkingDocument reviewDocument(
-            Long documentId, ParkingDocument.Status status, String reviewNote) {
+            Long documentId,
+            ParkingDocument.Status status,
+            String reviewNote) {
 
         if (documentId == null || documentId <= 0 || status == null
                 || status == ParkingDocument.Status.PENDING) {
-            throw new IllegalArgumentException("Invalid document review.");
+            throw new IllegalArgumentException(
+                    "Invalid document review.");
         }
 
         ParkingDocument document = documentDAO.findById(documentId)
@@ -41,7 +44,8 @@ public class ParkingDocumentService {
         }
 
         document.setStatus(status);
-        document.setReviewNote(reviewNote == null ? "" : reviewNote.trim());
+        document.setReviewNote(
+                reviewNote == null ? "" : reviewNote.trim());
 
         return documentDAO.update(document);
     }

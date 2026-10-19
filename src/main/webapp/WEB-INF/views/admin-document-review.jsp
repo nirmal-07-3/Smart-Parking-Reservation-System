@@ -16,10 +16,9 @@
         .list { display: grid; gap: 18px; }
         .card { background: #111b30; border: 1px solid #26344d; border-radius: 14px; padding: 22px; }
         .muted { color: #9ca3af; overflow-wrap: anywhere; }
-        input, textarea, select { width: 100%; padding: 11px; margin: 8px 0 14px; border-radius: 8px; border: 1px solid #334155; background: #0b1120; color: #fff; }
+        textarea, select { width: 100%; padding: 11px; margin: 8px 0 14px; border-radius: 8px; border: 1px solid #334155; background: #0b1120; color: #fff; }
         button { border: 0; border-radius: 8px; padding: 11px 16px; background: #0284c7; color: white; cursor: pointer; font-weight: bold; }
         label { display: block; color: #cbd5e1; }
-        .back { display: inline-block; margin-bottom: 18px; }
     </style>
 </head>
 <body>
@@ -28,7 +27,7 @@
     <a href="${pageContext.request.contextPath}/dashboard">Back to dashboard</a>
 </header>
 <main>
-    <a class="back" href="${pageContext.request.contextPath}/admin/provider-applications">Provider applications</a>
+    <p><a href="${pageContext.request.contextPath}/admin/provider-applications">Provider applications</a></p>
 
     <c:if test="${not empty sessionScope.adminMessage}">
         <div class="notice"><c:out value="${sessionScope.adminMessage}"/></div>
@@ -48,19 +47,19 @@
                         <p>Document ID: <c:out value="${doc.id}"/></p>
                         <p>Application ID: <c:out value="${doc.applicationId}"/></p>
                         <p>Uploaded: <c:out value="${doc.uploadedAt}"/></p>
-                        <p class="muted">Stored file reference: <c:out value="${doc.filePath}"/></p>
+                        <p class="muted">File reference: <c:out value="${doc.filePath}"/></p>
 
                         <form method="post" action="${pageContext.request.contextPath}/admin/document-review">
                             <input type="hidden" name="documentId" value="${doc.id}">
 
-                            <label>Decision</label>
-                            <select name="status" required>
+                            <label for="status-${doc.id}">Decision</label>
+                            <select id="status-${doc.id}" name="status" required>
                                 <option value="APPROVED">Approve document</option>
                                 <option value="REJECTED">Reject document</option>
                             </select>
 
-                            <label>Review note (required for rejection)</label>
-                            <textarea name="reviewNote" rows="3" maxlength="1000"></textarea>
+                            <label for="note-${doc.id}">Review note (required for rejection)</label>
+                            <textarea id="note-${doc.id}" name="reviewNote" rows="3" maxlength="1000"></textarea>
 
                             <button type="submit">Save review</button>
                         </form>

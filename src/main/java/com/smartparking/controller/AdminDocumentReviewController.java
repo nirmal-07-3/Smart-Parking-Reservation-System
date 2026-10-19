@@ -20,7 +20,6 @@ public class AdminDocumentReviewController extends HttpServlet {
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response)
             throws ServletException, IOException {
-
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
@@ -38,32 +37,36 @@ public class AdminDocumentReviewController extends HttpServlet {
     protected void doPost(HttpServletRequest request,
                           HttpServletResponse response)
             throws ServletException, IOException {
-
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        try {
-            Long documentId = Long.valueOf(
-                    request.getParameter("documentId"));
+        HttpSession session = request.getSession(false);
 
-            ParkingDocument.Status status = ParkingDocument.Status.valueOf(
-                    request.getParameter("status"));
+        try {
+            Long documentId =
+                    Long.valueOf(request.getParameter("documentId"));
+
+            ParkingDocument.Status status =
+                    ParkingDocument.Status.valueOf(
+                            request.getParameter("status"));
 
             documentService.reviewDocument(
-                    documentId, status, request.getParameter("reviewNote"));
+                    documentId,
+                    status,
+                    request.getParameter("reviewNote"));
 
-            setMessage(request.getSession(),
-                    "Document review saved successfully.");
+            session.setAttribute(
+                    "adminMessage", "Document review saved successfully.");
         } catch (IllegalArgumentException | NullPointerException e) {
-            setMessage(request.getSession(),
+            session.setAttribute("adminMessage",
                     e.getMessage() == null
                             ? "Invalid document review request."
                             : e.getMessage());
         } catch (RuntimeException e) {
-            setMessage(request.getSession(),
-                    "Unable to save the document review.");
+            session.setAttribute(
+                    "adminMessage", "Unable to save the document review.");
         }
 
         response.sendRedirect(
@@ -74,9 +77,5 @@ public class AdminDocumentReviewController extends HttpServlet {
         HttpSession session = request.getSession(false);
         return session != null
                 && "ADMIN".equals(session.getAttribute("userRole"));
-    }
-
-    private void setMessage(HttpSession session, String message) {
-        session.setAttribute("adminMessage", message);
     }
 }

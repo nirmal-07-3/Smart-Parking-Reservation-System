@@ -19,13 +19,13 @@ public class AdminReservationsController extends HttpServlet {
     protected void doGet(HttpServletRequest request,
                          HttpServletResponse response)
             throws ServletException, IOException {
-
         if (!isAdmin(request)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
         request.setAttribute("reservations", reservationDAO.findAll());
+
         request.getRequestDispatcher(
                         "/WEB-INF/views/admin-reservations.jsp")
                 .forward(request, response);

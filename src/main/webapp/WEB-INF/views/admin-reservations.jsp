@@ -26,7 +26,8 @@
     <a href="${pageContext.request.contextPath}/dashboard">Back to dashboard</a>
 </header>
 <main>
-    <p class="muted">Read-only overview of customer bookings and reservation statuses.</p>
+    <p class="muted">Read-only overview of customer reservations and their statuses.</p>
+
     <c:choose>
         <c:when test="${empty reservations}">
             <div class="empty">No reservations have been created yet.</div>

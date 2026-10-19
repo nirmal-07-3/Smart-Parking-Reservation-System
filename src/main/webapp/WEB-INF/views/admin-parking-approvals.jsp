@@ -16,8 +16,9 @@
         .list { display: grid; gap: 18px; }
         .card { background: #111b30; border: 1px solid #26344d; border-radius: 14px; padding: 22px; }
         .muted { color: #9ca3af; }
-        select { padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0b1120; color: #fff; margin: 8px 8px 14px 0; }
+        select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0b1120; color: #fff; margin: 8px 0 14px; }
         button { border: 0; border-radius: 8px; padding: 11px 16px; background: #0284c7; color: white; cursor: pointer; font-weight: bold; }
+        label { display: block; }
     </style>
 </head>
 <body>
@@ -56,11 +57,13 @@
 
                         <form method="post" action="${pageContext.request.contextPath}/admin/parking-approvals">
                             <input type="hidden" name="parkingId" value="${parking.id}">
+
                             <label for="status-${parking.id}">Decision</label>
                             <select id="status-${parking.id}" name="status" required>
                                 <option value="ACTIVE">Approve and publish</option>
                                 <option value="REJECTED">Reject listing</option>
                             </select>
+
                             <button type="submit">Save decision</button>
                         </form>
                     </section>
