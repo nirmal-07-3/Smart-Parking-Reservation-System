@@ -13,6 +13,10 @@ public interface ReservationDAO {
 
     List<Reservation> findByCustomerId(Long customerId);
 
+
+    List<Reservation> findAll();
+
+
     boolean hasOverlappingReservation(
             Long parkingSlotId,
             LocalDateTime startTime,

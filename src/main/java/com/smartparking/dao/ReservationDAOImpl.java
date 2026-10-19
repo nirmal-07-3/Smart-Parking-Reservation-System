@@ -103,4 +103,19 @@ public class ReservationDAOImpl implements ReservationDAO {
             em.close();
         }
     }
+
+
+    @Override
+    public List<Reservation> findAll() {
+        EntityManager em = JPAUtil.getEntityManager();
+        try {
+            return em.createQuery(
+                    "SELECT r FROM Reservation r ORDER BY r.createdAt DESC",
+                    Reservation.class
+            ).getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
 }

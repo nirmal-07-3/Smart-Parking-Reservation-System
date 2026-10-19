@@ -1,10 +1,16 @@
 
 package com.smartparking.service;
 
+import com.smartparking.config.JPAUtil;
 import com.smartparking.dao.ReservationDAO;
 import com.smartparking.dao.ReservationDAOImpl;
+import com.smartparking.entity.ParkingLocation;
+import com.smartparking.entity.ParkingSlot;
 import com.smartparking.entity.Reservation;
-
+import com.smartparking.entity.Vehicle;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityTransaction;
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
@@ -23,32 +29,117 @@ public class ReservationService {
             LocalDateTime endTime,
             BigDecimal hourlyRate) {
 
-        validateBooking(customerId, parkingSlotId, vehicleId,
-                startTime, endTime, hourlyRate);
+        validateBooking(
+                customerId, parkingSlotId, vehicleId, startTime, endTime);
 
-        if (reservationDAO.hasOverlappingReservation(
-                parkingSlotId, startTime, endTime)) {
-            throw new IllegalArgumentException(
-                    "This parking slot is already booked for the selected time.");
+        EntityManager em = JPAUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+
+            ParkingSlot slot = em.find(
+                    ParkingSlot.class,
+                    parkingSlotId,
+                    LockModeType.PESSIMISTIC_WRITE);
+
+            if (slot == null) {
+                throw new IllegalArgumentException(
+                        "Parking slot not found.");
+            }
+
+            if (slot.getStatus() != ParkingSlot.Status.AVAILABLE) {
+                throw new IllegalArgumentException(
+                        "This parking slot is not available.");
+            }
+
+            ParkingLocation parking = em.find(
+                    ParkingLocation.class,
+                    slot.getParkingLocationId());
+
+            if (parking == null
+                    || parking.getStatus() != ParkingLocation.Status.ACTIVE) {
+                throw new IllegalArgumentException(
+                        "This parking location is not active.");
+            }
+
+            Vehicle vehicle = em.find(Vehicle.class, vehicleId);
+
+            if (vehicle == null
+                    || !customerId.equals(vehicle.getUserId())) {
+                throw new IllegalArgumentException(
+                        "Select a vehicle registered to your account.");
+            }
+
+            if (slot.getVehicleType() == null
+                    || vehicle.getVehicleType() == null
+                    || !slot.getVehicleType().trim()
+                    .equalsIgnoreCase(vehicle.getVehicleType().trim())) {
+                throw new IllegalArgumentException(
+                        "The selected slot does not support this vehicle type.");
+            }
+
+            Long overlappingCount = em.createQuery(
+                            "SELECT COUNT(r) FROM Reservation r "
+                                    + "WHERE r.parkingSlotId = :slotId "
+                                    + "AND r.status <> :cancelled "
+                                    + "AND r.startTime < :endTime "
+                                    + "AND r.endTime > :startTime",
+                            Long.class)
+                    .setParameter("slotId", parkingSlotId)
+                    .setParameter(
+                            "cancelled", Reservation.Status.CANCELLED)
+                    .setParameter("startTime", startTime)
+                    .setParameter("endTime", endTime)
+                    .getSingleResult();
+
+            if (overlappingCount > 0) {
+                throw new IllegalArgumentException(
+                        "This parking slot is already booked for the selected time.");
+            }
+
+            BigDecimal effectiveRate = slot.getHourlyRate() != null
+                    ? slot.getHourlyRate()
+                    : parking.getHourlyRate();
+
+            if (effectiveRate == null
+                    || effectiveRate.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "A valid parking rate is not configured.");
+            }
+
+            long seconds = Duration.between(
+                    startTime, endTime).getSeconds();
+
+            long hours = (seconds + 3599) / 3600;
+
+            BigDecimal totalAmount = effectiveRate
+                    .multiply(BigDecimal.valueOf(hours))
+                    .setScale(2, RoundingMode.HALF_UP);
+
+            Reservation reservation = new Reservation();
+            reservation.setCustomerId(customerId);
+            reservation.setParkingSlotId(parkingSlotId);
+            reservation.setVehicleId(vehicleId);
+            reservation.setStartTime(startTime);
+            reservation.setEndTime(endTime);
+            reservation.setTotalAmount(totalAmount);
+            reservation.setStatus(Reservation.Status.PENDING);
+
+            em.persist(reservation);
+            em.flush();
+            tx.commit();
+
+            return reservation;
+
+        } catch (RuntimeException e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
         }
-
-        long minutes = Duration.between(startTime, endTime).toMinutes();
-        long hours = (minutes + 59) / 60;
-
-        BigDecimal totalAmount = hourlyRate
-                .multiply(BigDecimal.valueOf(hours))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        Reservation reservation = new Reservation();
-        reservation.setCustomerId(customerId);
-        reservation.setParkingSlotId(parkingSlotId);
-        reservation.setVehicleId(vehicleId);
-        reservation.setStartTime(startTime);
-        reservation.setEndTime(endTime);
-        reservation.setTotalAmount(totalAmount);
-        reservation.setStatus(Reservation.Status.PENDING);
-
-        return reservationDAO.save(reservation);
     }
 
     public Reservation getReservation(Long reservationId) {
@@ -58,13 +149,12 @@ public class ReservationService {
         }
 
         return reservationDAO.findById(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Reservation not found."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Reservation not found."));
     }
 
-    public List<Reservation> getCustomerReservations(
-            Long customerId) {
-
+    public List<Reservation> getCustomerReservations(Long customerId) {
         if (customerId == null || customerId <= 0) {
             throw new IllegalArgumentException(
                     "A valid customer ID is required.");
@@ -73,8 +163,9 @@ public class ReservationService {
         return reservationDAO.findByCustomerId(customerId);
     }
 
+    public boolean cancelPendingReservation(
+            Long reservationId, Long customerId) {
 
-    public boolean cancelPendingReservation(Long reservationId, Long customerId) {
         if (reservationId == null || reservationId <= 0
                 || customerId == null || customerId <= 0) {
             throw new IllegalArgumentException(
@@ -82,8 +173,9 @@ public class ReservationService {
         }
 
         Reservation reservation = reservationDAO.findById(reservationId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Reservation not found."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Reservation not found."));
 
         if (!customerId.equals(reservation.getCustomerId())) {
             throw new IllegalArgumentException(
@@ -92,7 +184,7 @@ public class ReservationService {
 
         if (reservation.getStatus() != Reservation.Status.PENDING) {
             throw new IllegalArgumentException(
-                    "Only pending reservations can be cancelled using this operation.");
+                    "Only pending reservations can be cancelled.");
         }
 
         reservation.setStatus(Reservation.Status.CANCELLED);
@@ -101,14 +193,12 @@ public class ReservationService {
         return true;
     }
 
-
     private void validateBooking(
             Long customerId,
             Long parkingSlotId,
             Long vehicleId,
             LocalDateTime startTime,
-            LocalDateTime endTime,
-            BigDecimal hourlyRate) {
+            LocalDateTime endTime) {
 
         if (customerId == null || customerId <= 0
                 || parkingSlotId == null || parkingSlotId <= 0
@@ -130,12 +220,6 @@ public class ReservationService {
         if (!endTime.isAfter(startTime)) {
             throw new IllegalArgumentException(
                     "End time must be after start time.");
-        }
-
-        if (hourlyRate == null
-                || hourlyRate.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(
-                    "A valid hourly parking rate is required.");
         }
     }
 }

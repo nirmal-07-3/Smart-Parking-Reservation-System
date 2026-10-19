@@ -1,7 +1,9 @@
+
 package com.smartparking.dao;
 
 import com.smartparking.config.JPAUtil;
 import com.smartparking.entity.Payment;
+import com.smartparking.entity.Reservation;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import java.util.List;
@@ -57,6 +59,41 @@ public class PaymentDAOImpl implements PaymentDAO {
             Payment updated = em.merge(payment);
             tx.commit();
             return updated;
+        } catch (RuntimeException e) {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            throw e;
+        } finally {
+            em.close();
+        }
+    }
+
+    @Override
+    public Payment saveOrUpdateWithReservation(
+            Payment payment, Reservation reservation) {
+
+        EntityManager em = JPAUtil.getEntityManager();
+        EntityTransaction tx = em.getTransaction();
+
+        try {
+            tx.begin();
+
+            Payment managedPayment;
+
+            if (payment.getId() == null) {
+                em.persist(payment);
+                managedPayment = payment;
+            } else {
+                managedPayment = em.merge(payment);
+            }
+
+            if (reservation != null) {
+                em.merge(reservation);
+            }
+
+            tx.commit();
+            return managedPayment;
         } catch (RuntimeException e) {
             if (tx.isActive()) {
                 tx.rollback();
