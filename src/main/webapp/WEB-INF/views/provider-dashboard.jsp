@@ -1,3 +1,4 @@
+
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <!DOCTYPE html>
@@ -66,8 +67,9 @@
             background-color: #b91c1c;
         }
 
-        .logout-button:focus-visible {
-            outline: 3px solid #fca5a5;
+        .logout-button:focus-visible,
+        .action-link:focus-visible {
+            outline: 3px solid #60a5fa;
             outline-offset: 3px;
         }
 
@@ -120,15 +122,20 @@
         }
 
         .card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
             padding: 24px;
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
 
         .card:hover {
             transform: translateY(-3px);
+            border-color: #93c5fd;
             box-shadow: 0 8px 22px rgba(15, 23, 42, 0.07);
         }
 
@@ -139,19 +146,49 @@
         }
 
         .card p {
-            min-height: 48px;
-            margin: 0 0 16px;
+            flex: 1;
+            margin: 0 0 20px;
             color: #64748b;
             font-size: 14px;
             line-height: 1.6;
         }
 
-        .pending {
-            display: inline-block;
-            color: #92400e;
-            font-size: 13px;
+        .card-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 23px;
             font-weight: 700;
-            line-height: 1.5;
+        }
+
+        .action-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 11px 16px;
+            border-radius: 8px;
+            background: #1d4ed8;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            transition: background-color 0.2s ease;
+        }
+
+        .action-link:hover {
+            background: #1e40af;
+        }
+
+        .action-link.disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
         }
 
         .footer {
@@ -163,7 +200,7 @@
 
         @media (max-width: 760px) {
             .dashboard-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .topbar {
@@ -176,6 +213,20 @@
 
             .container {
                 margin-top: 22px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .welcome {
+                padding: 22px;
+            }
+
+            .welcome h2 {
+                font-size: 22px;
             }
         }
     </style>
@@ -200,7 +251,8 @@
         </h2>
 
         <p>
-            Manage your parking facilities and prepare them for customer reservations.
+            Manage your parking facilities, submit verification documents,
+            and prepare your locations for customer reservations.
         </p>
 
         <span class="role">PROVIDER ACCOUNT</span>
@@ -210,21 +262,66 @@
 
     <section class="dashboard-grid">
         <article class="card">
+            <div class="card-icon" aria-hidden="true">✓</div>
             <h3>Provider Application</h3>
-            <p>Submit your provider information and prepare the details needed for verification.</p>
-            <span class="pending">Application workflow pending integration</span>
+            <p>
+                Submit your business details and track your provider
+                verification application.
+            </p>
+            <a class="action-link"
+               href="${pageContext.request.contextPath}/provider/applications">
+                Manage Application
+            </a>
         </article>
 
         <article class="card">
+            <div class="card-icon" aria-hidden="true">⌖</div>
             <h3>Parking Locations</h3>
-            <p>Prepare to create and manage your parking locations.</p>
-            <span class="pending">Location management pending integration</span>
+            <p>
+                Create and manage your parking facilities and their
+                location information.
+            </p>
+            <a class="action-link"
+               href="${pageContext.request.contextPath}/provider/parkings">
+                Manage Locations
+            </a>
         </article>
 
         <article class="card">
+            <div class="card-icon" aria-hidden="true">▤</div>
+            <h3>Verification Documents</h3>
+            <p>
+                Upload and manage the documents required for provider
+                and parking verification.
+            </p>
+
+            <c:choose>
+                <c:when test="${not empty sessionScope.lastProviderApplicationId}">
+                    <a class="action-link"
+                       href="${pageContext.request.contextPath}/provider/documents?applicationId=${sessionScope.lastProviderApplicationId}">
+                        Manage Documents
+                    </a>
+                </c:when>
+                <c:otherwise>
+                    <a class="action-link"
+                       href="${pageContext.request.contextPath}/provider/applications">
+                        Start with Application
+                    </a>
+                </c:otherwise>
+            </c:choose>
+        </article>
+
+        <article class="card">
+            <div class="card-icon" aria-hidden="true">▦</div>
             <h3>Parking Slots</h3>
-            <p>Prepare parking spaces and hourly pricing for future reservations.</p>
-            <span class="pending">Slot management pending integration</span>
+            <p>
+                Configure parking slots and manage the spaces available
+                at your parking locations.
+            </p>
+            <a class="action-link"
+               href="${pageContext.request.contextPath}/provider/slots">
+                Manage Slots
+            </a>
         </article>
     </section>
 </main>
